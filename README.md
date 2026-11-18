@@ -60,9 +60,9 @@ sw.js                  오프라인 캐시
 manifest.webmanifest   홈 화면 앱 정보
 icons/                 앱 아이콘
 vendor/                MediaPipe 얼굴 인식 엔진 0.10.35 (Apache-2.0)
-models/                (선택) 얼굴 인식 모델을 직접 둘 곳
+models/                MediaPipe 얼굴 인식 모델 face_landmarker.task (Apache-2.0)
 ```
 
-- 얼굴 인식 모델은 처음 실행할 때 구글 공식 주소에서 받습니다. 인터넷 없이도 처음부터 쓰고 싶으면, 아래 파일을 받아 `models/face_landmarker.task`로 넣어 두세요.
+- 얼굴 인식 모델은 `models/face_landmarker.task`에 들어 있어 앱 파일과 함께 받습니다. 이 파일이 없으면 앱이 아래 구글 공식 주소에서 받습니다.
   https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task
 - 파일을 고친 뒤에는 `sw.js` 맨 위의 `CACHE` 이름 숫자를 올려야 휴대폰에 새 버전이 반영됩니다.
