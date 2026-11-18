@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="벌레쫓기">
+<meta name="theme-color" content="#2d2559">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<title>충치벌레 쫓아내기</title>
+<style>
+  :root {
+    --bg: #2d2559;
+    --bg2: #4b3c8f;
+    --card: #ffffff;
+    --ink: #2b2240;
+    --muted: #6d6585;
+    --accent: #ffb703;
+    --accent-ink: #4a3200;
+    --good: #4cc38a;
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden; background: #000; color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    overscroll-behavior: none; touch-action: manipulation;
+  }
+  #cam, #fx { position: fixed; left: 0; top: 0; width: 100%; height: 100%; }
+  #cam { object-fit: cover; transform: scaleX(-1); background: #000; }
+  #fx { pointer-events: none; }
+
+  .screen {
+    position: fixed; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center;
+    padding: calc(24px + var(--safe-t)) 24px calc(24px + var(--safe-b)); text-align: center; z-index: 20;
+  }
+  .screen.show { display: flex; }
+  .solid { background: radial-gradient(circle at 50% 30%, var(--bg2), var(--bg) 70%); color: #fff; }
+  .dim { background: rgba(20, 14, 45, 0.72); color: #fff; }
+
+  h1 { font-size: 34px; line-height: 1.2; margin: 8px 0 4px; letter-spacing: -0.5px; }
+  .sub { font-size: 17px; opacity: 0.85; margin: 0 0 20px; }
+  .big-btn {
+    appearance: none; border: 0; border-radius: 999px; background: var(--accent); color: var(--accent-ink);
+    font-size: 28px; font-weight: 800; padding: 22px 52px; box-shadow: 0 8px 0 #c98a00; cursor: pointer;
+    font-family: inherit; touch-action: manipulation;
+  }
+  .big-btn:active { transform: translateY(4px); box-shadow: 0 4px 0 #c98a00; }
+  .btn {
+    appearance: none; border: 2px solid rgba(255,255,255,0.7); background: transparent; color: #fff; border-radius: 999px;
+    font-size: 17px; font-weight: 700; padding: 12px 26px; margin: 6px; font-family: inherit; cursor: pointer;
+  }
+  .btn.light { border-color: #d8d2ea; color: var(--ink); }
+  #homeWorm { width: 220px; height: 150px; }
+
+  .week { display: flex; gap: 8px; margin: 26px 0 6px; }
+  .day { width: 38px; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 13px; opacity: 0.9; }
+  .dot { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .dot.on { background: var(--accent); }
+  .dot.today { outline: 2px solid #fff; outline-offset: 2px; }
+  .note { font-size: 13px; opacity: 0.7; margin-top: 18px; max-width: 320px; line-height: 1.45; }
+
+  .spinner { width: 54px; height: 54px; border-radius: 50%; border: 6px solid rgba(255,255,255,0.25); border-top-color: var(--accent); animation: spin 0.9s linear infinite; margin-bottom: 18px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .card { background: var(--card); color: var(--ink); border-radius: 22px; padding: 22px 20px; max-width: 360px; width: 100%; text-align: left; }
+  .card h2 { margin: 0 0 10px; font-size: 21px; }
+  .card p, .card li { font-size: 15px; line-height: 1.5; color: var(--ink); }
+  .card ol { padding-left: 20px; margin: 8px 0; }
+  .card .row { display: flex; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+  .card .btn { color: var(--ink); border-color: #cfc7e6; }
+  .card .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+  #hud {
+    position: fixed; left: 0; right: 0; top: calc(68px + var(--safe-t)); display: none; flex-direction: column; align-items: center; gap: 8px; z-index: 10; pointer-events: none;
+  }
+  #hud.show { display: flex; }
+  .teeth { display: flex; gap: 10px; }
+  .tooth {
+    width: 46px; height: 46px; border-radius: 14px; background: rgba(255,255,255,0.85); display: flex; align-items: center; justify-content: center;
+    font-size: 24px; transition: transform 0.3s, background 0.3s; box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  }
+  .tooth.now { background: #fff6cf; transform: scale(1.15); animation: bob 0.9s ease-in-out infinite; }
+  .tooth.clean { background: #d6ffe9; }
+  @keyframes bob { 50% { transform: scale(1.22); } }
+  .bar { width: min(320px, 76vw); height: 12px; border-radius: 999px; background: rgba(255,255,255,0.35); overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0%; background: var(--accent); border-radius: 999px; transition: width 0.25s linear; }
+
+  #caption {
+    position: fixed; left: 50%; bottom: calc(26px + var(--safe-b)); transform: translateX(-50%); max-width: 88vw; z-index: 11;
+    background: rgba(255,255,255,0.94); color: var(--ink); font-size: 21px; font-weight: 800; padding: 14px 22px; border-radius: 22px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.25); display: none; text-align: center; line-height: 1.35; pointer-events: none;
+  }
+  #caption.show { display: block; animation: pop 0.25s ease-out; }
+  @keyframes pop { from { transform: translateX(-50%) scale(0.85); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
+  #hint {
+    position: fixed; left: 50%; top: calc(150px + var(--safe-t)); transform: translateX(-50%); z-index: 11; display: none;
+    background: rgba(0,0,0,0.55); color: #fff; font-size: 16px; font-weight: 700; padding: 8px 16px; border-radius: 999px; pointer-events: none;
+  }
+  #hint.show { display: block; }
+
+  #gear {
+    position: fixed; right: calc(12px); top: calc(12px + var(--safe-t)); z-index: 30; width: 46px; height: 46px; border-radius: 50%;
+    border: 0; background: rgba(0,0,0,0.28); color: #fff; font-size: 24px; line-height: 46px; padding: 0; font-family: inherit;
+  }
+  #gear svg { position: absolute; inset: 0; width: 46px; height: 46px; transform: rotate(-90deg); }
+  #gear circle { fill: none; stroke: var(--accent); stroke-width: 4; stroke-dasharray: 132; stroke-dashoffset: 132; }
+  #gear.holding circle { transition: stroke-dashoffset 1.2s linear; stroke-dashoffset: 0; }
+  #exitBtn {
+    position: fixed; left: 12px; top: calc(12px + var(--safe-t)); z-index: 30; display: none; border: 0; border-radius: 999px;
+    background: rgba(0,0,0,0.28); color: #fff; font-size: 15px; font-weight: 700; padding: 12px 16px; font-family: inherit;
+  }
+  #exitBtn.show { display: block; }
+
+  .set-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee8f7; font-size: 16px; gap: 10px; }
+  .seg { display: flex; gap: 6px; }
+  .seg button { border: 2px solid #d8d2ea; background: #fff; color: var(--ink); border-radius: 999px; padding: 7px 12px; font-size: 15px; font-weight: 700; font-family: inherit; }
+  .seg button.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .tiny { font-size: 12px !important; color: var(--muted) !important; }
+
+  .sticker { font-size: 92px; line-height: 1; animation: grow 0.6s cubic-bezier(.3,1.6,.5,1); }
+  @keyframes grow { from { transform: scale(0.2) rotate(-30deg); } to { transform: scale(1) rotate(0); } }
+  #debug { position: fixed; left: 8px; bottom: calc(8px + var(--safe-b)); z-index: 40; color: #0f0; background: rgba(0,0,0,0.6); font: 11px/1.35 ui-monospace, Menlo, monospace; padding: 6px 8px; border-radius: 6px; display: none; white-space: pre; pointer-events: none; }
+  #debug.show { display: block; }
+</style>
+</head>
+<body>
+<video id="cam" playsinline muted autoplay></video>
+<canvas id="fx"></canvas>
+
+<div id="hud" aria-hidden="true">
+  <div class="teeth">
+    <div class="tooth" data-zone="0">🦷</div>
+    <div class="tooth" data-zone="1">🦷</div>
+    <div class="tooth" data-zone="2">🦷</div>
+    <div class="tooth" data-zone="3">🦷</div>
+  </div>
+  <div class="bar"><i id="barFill"></i></div>
+</div>
+<div id="caption" role="status" aria-live="polite"></div>
+<div id="hint"></div>
+<div id="debug"></div>
+
+<button id="exitBtn" type="button">그만하기</button>
+<button id="gear" type="button" aria-label="보호자 설정 (길게 누르기)">
+  <svg viewBox="0 0 46 46" aria-hidden="true"><circle cx="23" cy="23" r="21"></circle></svg>⚙︎
+</button>
+
+<section id="home" class="screen solid show">
+  <canvas id="homeWorm" width="440" height="300" aria-hidden="true"></canvas>
+  <h1>충치벌레 쫓아내기</h1>
+  <p class="sub">칫솔로 쓱쓱! 벌레들이 도망가요</p>
+  <button id="startBtn" class="big-btn" type="button">시작!</button>
+  <div class="week" id="week"></div>
+  <p class="note" id="homeNote">카메라 영상은 이 휴대폰 밖으로 나가지 않아요.<br>설정은 오른쪽 위 ⚙︎ 버튼을 길게 누르면 열려요.</p>
+</section>
+
+<section id="loading" class="screen dim">
+  <div class="spinner"></div>
+  <h1 style="font-size:24px">준비하고 있어요</h1>
+  <p class="sub" id="loadingMsg">처음 한 번은 조금 걸릴 수 있어요</p>
+</section>
+
+<section id="paused" class="screen dim">
+  <h1 style="font-size:26px">잠깐 멈췄어요</h1>
+  <p class="sub">다시 하려면 눌러 주세요</p>
+  <button id="resumeBtn" class="big-btn" type="button">계속하기</button>
+  <button id="pausedHomeBtn" class="btn" type="button" style="margin-top:18px">처음으로</button>
+</section>
+
+<section id="done" class="screen solid">
+  <div class="sticker" id="doneSticker">⭐</div>
+  <h1>최고야!</h1>
+  <p class="sub" id="doneMsg">벌레들이 모두 도망갔어요</p>
+  <div class="week" id="doneWeek"></div>
+  <div style="margin-top:18px">
+    <button id="againBtn" class="btn" type="button">한 번 더</button>
+    <button id="homeBtn" class="btn" type="button">처음으로</button>
+  </div>
+</section>
+
+<section id="error" class="screen dim">
+  <div class="card">
+    <h2 id="errTitle">문제가 생겼어요</h2>
+    <div id="errBody"></div>
+    <div class="row">
+      <button id="errRetry" class="btn primary" type="button">다시 시도</button>
+      <button id="errHome" class="btn" type="button">처음으로</button>
+    </div>
+  </div>
+</section>
+
+<section id="settings" class="screen dim">
+  <div class="card">
+    <h2>보호자 설정</h2>
+    <div class="set-row"><span>양치 시간</span>
+      <div class="seg" data-key="duration">
+        <button type="button" data-val="60">1분</button><button type="button" data-val="120">2분</button><button type="button" data-val="180">3분</button>
+      </div>
+    </div>
+    <div class="set-row"><span>목소리 안내</span>
+      <div class="seg" data-key="voice"><button type="button" data-val="1">켜기</button><button type="button" data-val="0">끄기</button></div>
+    </div>
+    <div class="set-row"><span>효과음</span>
+      <div class="seg" data-key="sfx"><button type="button" data-val="1">켜기</button><button type="button" data-val="0">끄기</button></div>
+    </div>
+    <div class="set-row"><span>인식 상태 보기</span>
+      <div class="seg" data-key="debug"><button type="button" data-val="1">켜기</button><button type="button" data-val="0">끄기</button></div>
+    </div>
+    <p class="tiny">소리가 안 나면 아이폰 옆면의 무음 스위치(또는 제어 센터의 무음 모드)를 꺼 주세요. 버전 <span id="ver"></span></p>
+    <div class="row">
+      <button id="resetStickers" class="btn" type="button">스티커 기록 지우기</button>
+      <button id="closeSettings" class="btn primary" type="button">닫기</button>
+    </div>
+  </div>
+</section>
+
+<script nomodule>
+  document.getElementById('homeNote').innerHTML = '이 브라우저는 너무 오래되어 실행할 수 없어요.<br>iOS 15 이상의 Safari에서 열어 주세요.';
+  document.getElementById('startBtn').style.display = 'none';
+</script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

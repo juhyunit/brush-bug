@@ -1,0 +1,4 @@
+vendor/ 의 vision_bundle.mjs 와 wasm/ 파일은 Google MediaPipe Tasks Vision 0.10.35
+(npm @mediapipe/tasks-vision) 원본 그대로입니다.
+License: Apache License 2.0 — https://www.apache.org/licenses/LICENSE-2.0
+Privacy notice: https://goo.gle/mediapipe-privacy
